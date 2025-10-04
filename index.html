@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EDITH - Your Personal AI Chatbot</title>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#131314"/>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -84,10 +88,10 @@
         }
     </style>
 </head>
-<body class="flex h-screen">
+<body class="relative flex h-screen overflow-hidden">
     
     <!-- Sidebar -->
-    <aside id="sidebar" class="bg-[#1e1f20] w-64 p-4 flex-shrink-0 flex flex-col h-full">
+    <aside id="sidebar" class="bg-[#1e1f20] w-64 p-4 flex-shrink-0 flex flex-col h-full absolute md:relative z-20 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
         <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-2">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -99,6 +103,9 @@
                 </svg>
                 <h1 class="text-xl font-bold text-white">EDITH</h1>
             </div>
+             <button id="close-sidebar-btn" class="md:hidden text-gray-400 hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
         </div>
         
         <button id="new-chat-btn" class="w-full flex items-center justify-center gap-2 bg-[#2a2b2c] hover:bg-[#3c3d3e] text-white font-semibold py-2 px-4 rounded-lg transition-colors mb-4">
@@ -116,6 +123,12 @@
 
     <!-- Main Chat Area -->
     <main class="flex-1 flex flex-col h-screen">
+        <header class="p-4 flex items-center gap-4 border-b border-gray-700 md:hidden">
+            <button id="menu-btn" class="text-gray-300 hover:text-white">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+            </button>
+            <h2 class="font-semibold text-lg">EDITH</h2>
+        </header>
         <div id="chat-container" class="flex-1 overflow-y-auto p-6 md:p-10">
             <div id="welcome-screen" class="h-full flex flex-col justify-center items-center">
                  <h1 class="text-4xl md:text-5xl font-bold mb-2">Hello!</h1>
@@ -158,8 +171,6 @@
 
     <script type="module">
         // --- CONFIGURATION ---
-        // You still need an API key for the Gemini model. 
-        // Create one in Google AI Studio or Google Cloud Console and paste it here.
         const GEMINI_API_KEY = "AIzaSyCgDXs7KIvhFC4uCJMG3DdDrLYQE1S7QiI";
 
         const mdConverter = new showdown.Converter({
@@ -171,6 +182,9 @@
         });
 
         // --- DOM ELEMENTS ---
+        const sidebar = document.getElementById('sidebar');
+        const menuBtn = document.getElementById('menu-btn');
+        const closeSidebarBtn = document.getElementById('close-sidebar-btn');
         const chatHistoryContainer = document.getElementById('chat-history');
         const messageList = document.getElementById('message-list');
         const chatForm = document.getElementById('chat-form');
@@ -257,6 +271,9 @@ Always respond clearly and helpfully. Format your responses using Markdown.`;
             document.querySelectorAll('#chat-history div').forEach(el => {
                 el.classList.remove('bg-[#3c3d3e]');
             });
+            if(window.innerWidth < 768) { // md breakpoint
+                 sidebar.classList.add('-translate-x-full');
+            }
         }
 
         function loadChatHistory() {
@@ -295,6 +312,9 @@ Always respond clearly and helpfully. Format your responses using Markdown.`;
             document.querySelectorAll('#chat-history div').forEach(el => {
                 el.classList.toggle('bg-[#3c3d3e]', el.dataset.id === chatId);
             });
+            if(window.innerWidth < 768) { // md breakpoint
+                 sidebar.classList.add('-translate-x-full');
+            }
         }
 
         function renderMessages() {
@@ -394,6 +414,14 @@ Always respond clearly and helpfully. Format your responses using Markdown.`;
         }
 
         function setupEventListeners() {
+            menuBtn.addEventListener('click', () => {
+                sidebar.classList.remove('-translate-x-full');
+            });
+
+            closeSidebarBtn.addEventListener('click', () => {
+                sidebar.classList.add('-translate-x-full');
+            });
+
             newChatBtn.addEventListener('click', resetChat);
 
             chatForm.addEventListener('submit', (e) => {
@@ -438,7 +466,7 @@ Always respond clearly and helpfully. Format your responses using Markdown.`;
         }
 
         function initializeApp() {
-            if (GEMINI_API_KEY === "PASTE_YOUR_GEMINI_API_KEY_HERE") {
+            if (GEMINI_API_KEY.startsWith("PASTE_YOUR") || GEMINI_API_KEY === "") {
                 disableApp("Your Gemini API key is missing.");
                 return;
             }
@@ -448,6 +476,17 @@ Always respond clearly and helpfully. Format your responses using Markdown.`;
         }
 
         initializeApp();
+
+        // --- PWA Service Worker Registration ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
 
     </script>
 </body>
